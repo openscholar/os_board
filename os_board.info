@@ -1,0 +1,4 @@
+name = os_board
+description = This module is to displays most visited sites and most viewed pages
+core = 7.x
+files[] = os_board.module

@@ -1,0 +1,51 @@
+<?php
+
+/*
+ *  hook menu
+ */
+function os_board_menu(){
+	
+    $items = array();
+    $items['os_board'] = array(
+        'title' => 'os_board',
+        'description' => 'Displays most visited sites and most visited pages',
+        'page callback' => 'mostVisitedSites', 
+		'access callback' => TRUE,
+	);
+	
+	$items['os_board/sites'] = array(
+		'title' => 'sites',
+		'page callback' => 'mostVisitedSites',
+		'access callback' => TRUE,
+		'type' => MENU_DEFAULT_LOCAL_TASK,
+		'weight' => -10,
+	);
+	
+	$items['os_board/pages'] = array(
+		'title' => 'pages',
+		'page callback' => 'mostVisitedPages',
+		'access callback' => TRUE,
+		'type' => MENU_LOCAL_TASK,
+		'weight' => -9,
+	);
+	
+	return $items;
+}
+
+function mostVisitedSites(){
+   $hello = 'hello';
+   return $hello;
+}
+
+function mostVisitedPages(){
+   $hello = 'hello';
+   return $hello;
+}
+
+
+
+
+
+
+
+

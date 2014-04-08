@@ -1,6 +1,51 @@
 <?php
 
 /*
+ *  Google API
+ */
+ 
+// 0. start a new session
+session_start();
+
+// 1. include google api sdk
+require_once ('Google/Client.php');
+require_once ('Google/Service/Analytics.php');
+
+// 2. create client object
+$client = new Google_Client();
+$client->setApplicationName("os_board");
+$client->setAccessType('offline');
+$client->setUseObjects(true);
+
+// 3. add client ID, secret and key from google api console
+$client->setClientId('531026460268.apps.googleusercontent.com');
+$client->setClientSecret('NPIL7etVzcOcp-hYcRRyJPZW');
+$client->setDeveloperKey('AIzaSyAz4kiKnyoMKp0e8ORuqbWNZZpplrxGsGE');
+$client->setRedirectUri('https://www.example.com/oauth2callback');
+
+// 4. create analytics object
+$analytics = new Google_AnalyticsService($client);
+
+// 5. if url contains logout query string, clear session
+if (isset($_GET['logout'])) {
+  unset($_SESSION['token']);
+}
+
+// 6. Reading code to authenticate
+if (isset($_GET['code'])) {
+    $client->authenticate();
+    $_SESSION['token'] = $client->getAccessToken();
+    $redirect = 'https://www.example.com/oauth2callback';
+    header('Location: ' . filter_var($redirect, FILTER_SANITIZE_URL));
+}
+ 
+// 7. Setting Access Token
+if (isset($_SESSION['token'])) {
+    $client->setAccessToken($_SESSION['token']);
+}
+
+
+/*
  *  hook menu
  */
 function os_board_menu(){
@@ -33,13 +78,79 @@ function os_board_menu(){
 }
 
 function mostVisitedSites(){
-   $hello = 'hello';
-   return $hello;
+  try {
+    $results = queryCoreReportingApi();
+	//printColumnHeaders($results);
+	printDataTable($results);
+    // Success. Do something cool!
+
+  } catch (apiServiceException $e) {
+    // Handle API service exceptions.
+    $error = $e->getMessage();
+  }
 }
 
 function mostVisitedPages(){
    $hello = 'hello';
    return $hello;
+}
+
+function queryCoreReportingApi() {
+  $optParams = array(
+    'dimensions' => 'ga:hostname',
+    'sort' => '-ga:visits',
+    'max-results' => '50');
+	
+  return $service->data_ga->get(
+    'ga:35141798',
+    '2010-01-01',
+    '2010-01-15',
+    'ga:visits',
+    $optParams);
+}
+
+/*
+function printColumnHeaders(&$results) {
+  $html = '';
+  $headers = $results->getColumnHeaders();
+
+  foreach ($headers as $header) {
+    $html .= << HTML 
+	Column Name = {$header->getName()}
+    Column Type = {$header->getColumnType()}
+    Column Data Type = {$header->getDataType()} HTML;
+
+  print $html;
+}*/
+
+function printDataTable(&$results) {
+  if (count($results->getRows()) > 0) {
+    $table .= '<table>';
+
+    // Print headers.
+    $table .= '<tr>';
+
+    foreach ($results->getColumnHeaders() as $header) {
+      $table .= '<th>' . $header->name . '</th>';
+    }
+    $table .= '</tr>';
+
+    // Print table rows.
+    foreach ($results->getRows() as $row) {
+      $table .= '<tr>';
+        foreach ($row as $cell) {
+          $table .= '<td>'
+                 . htmlspecialchars($cell, ENT_NOQUOTES)
+                 . '</td>';
+        }
+      $table .= '</tr>';
+    }
+    $table .= '</table>';
+
+  } else {
+    $table .= '<p>No Results Found.</p>';
+  }
+  print $table;
 }
 
 

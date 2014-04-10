@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 <?php
 
 /**
@@ -23,3 +24,79 @@ function mostViewedShow(){
 
 
 }
+=======
+<?php  
+require_once 'google-api-php-client/src/Google_Client.php';
+require_once 'google-api-php-client/src/contrib/Google_AnalyticsService.php';
+
+function os_board_menu() {
+  $items = array();
+ 
+  $items['os_board'] = array(
+        'title' => 'Dash Board',
+        'description' => 'display dash board',
+		'page callback' => 'dash_board',
+		'access callback' => TRUE,
+    	);
+		
+  $items['os_board/page'] = array(
+    'type' => MENU_DEFAULT_LOCAL_TASK,
+	'weight' => 10
+  );
+ 
+  return $items;
+}
+
+/**
+ * Helper function to make a link.
+ */
+function dash_board() {
+    //authorized credentials are stored in the accessToken object
+    drupal_session_start();
+	//create a new object of Google_Client by initializing the client object
+	$client = new Google_Client();
+	
+	$client->setApplicationName('OS Analytics Sample');
+	
+	/*$client->setClientId('1076290322756-6mdpp9nvh7u60h5e0nbqli9e16hsareu.apps.googleusercontent.com');
+	$client->setClientSecret('JZ-Sh0ULtkDQjhvNHGIuMIG-');
+	$client->setRedirectUri('http://localhost');
+	$client->setDeveloperKey('AIzaSyCc-URfEtLokUnLCZd4cko6f3u0lKl4vmU');
+	$client->setScopes('https://www.googleapis.com/auth/analytics.readonly');*/
+	
+	//properties of client object being set via details from google developers console
+	$client->setClientId('1076290322756-nvnhvfuukq8fnh2d9m2c8gltvahcv4ei.apps.googleusercontent.com');
+	$client->setClientSecret('BjsfVV0hPrlafgeXhMGWjh49');
+	$client->setRedirectUri('http://localhost/drupaltest/board_os');
+	$client->setDeveloperKey('AIzaSyCc-URfEtLokUnLCZd4cko6f3u0lKl4vmU');
+	$client->setScopes('https://www.googleapis.com/auth/analytics.readonly');
+	
+	//set client object to true to use the authentication
+	$client->setUseObjects(true);
+	
+	if (isset($_GET['code'])){
+	  //authenticate the client
+	  $client->authenticate();
+	  //if the client is authenticated, the token is set for the user and the client is redirected to the proper page
+	  $_SESSION['token'] = $client->getAccessToken();
+	  $redirect = 'http://'.$_SERVER['HTTP_HOST']. $_SERVER['PHP_SELF'];
+	  header('Location: ' .filter_var($redirect, FILTER_SANITIZE_URL));
+	}
+	
+	if (isset($_SESSION['token'])){
+	  $client->setAccessToken($_SESSION['token']);
+	} 
+	
+	// this places a link 'connect me' which tells the user that google wishes to use the data from me and once the user
+	// is authenticated, it returns to the hello page'
+	if (!$client->getAccessToken()){
+	   $authUrl = $client->createAuthUrl();
+	   return "<a class='login' href='$authUrl'>Connect Me!</a>";
+	}
+	else {
+		 return 'hello. Got Authenticated!';	
+	}
+    
+}
+
+>>>>>>> master

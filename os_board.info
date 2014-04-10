@@ -1,4 +1,3 @@
-name = OpenScholar board
-description = Dash Board for OpenScholar
+name = Board OpenScholar
 core = 7.x
 files[] = os_board.module

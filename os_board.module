@@ -1,0 +1,25 @@
+<?php
+
+/**
+ * hook_menu for os_board
+ */	
+function os_board_menu(){
+	
+    $items = array();
+    $items['os_board'] = array(
+        'title' => 'OS Most Viewed',
+        'description' => 'Displays most visited sites and most viewed',
+        'page callback' => 'mostViewedShow', 
+		'access callback' => TRUE,
+		'type' => MENU_DEFAULT_LOCAL_TASK,
+		);
+	
+	return $items;
+}
+
+function mostViewedShow(){
+   $hello = 'hello';
+   return $hello;
+
+
+}

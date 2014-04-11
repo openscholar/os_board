@@ -1,6 +1,7 @@
 <?php  
 require_once 'google-api-php-client/src/Google_Client.php';
 require_once 'google-api-php-client/src/contrib/Google_AnalyticsService.php';
+require_once 'google-api-php-client/src/contrib/Google_PlusService.php';
 
 function os_board_menu() {
   $items = array();
@@ -40,9 +41,10 @@ function dash_board() {
 	//properties of client object being set via details from google developers console
 	$client->setClientId('1076290322756-nvnhvfuukq8fnh2d9m2c8gltvahcv4ei.apps.googleusercontent.com');
 	$client->setClientSecret('BjsfVV0hPrlafgeXhMGWjh49');
-	$client->setRedirectUri('http://localhost/drupaltest/board_os');
+	$client->setRedirectUri('http://localhost/drupaltest/os_board');
 	$client->setDeveloperKey('AIzaSyCc-URfEtLokUnLCZd4cko6f3u0lKl4vmU');
 	$client->setScopes('https://www.googleapis.com/auth/analytics.readonly');
+	$client->setAccessType('offline_access');
 	
 	//set client object to true to use the authentication
 	$client->setUseObjects(true);
@@ -62,14 +64,22 @@ function dash_board() {
 	
 	// this places a link 'connect me' which tells the user that google wishes to use the data from me and once the user
 	// is authenticated, it returns to the hello page'
-	if (!$client->getAccessToken()){
-	   $authUrl = $client->createAuthUrl();
-	   return "<a class='login' href='$authUrl'>Connect Me!</a>";
-	}
-	else {
-		 return 'hello. Got Authenticated!';	
-	}
-    
+	if (!$client->getAccessToken()) {
+            $authUrl = $client->createAuthUrl();
+            return "<a class='login' href='$authUrl'>Connect Me!</a>";
+
+        } else {
+		   //   return "i am authenticated";
+              $analytics = new Google_AnalyticsService($client);
+			 return get_OS_data($analytics);
+			
+        }
+
 }
 
+function get_OS_data(&$analytics){
+
+
+
+}
 

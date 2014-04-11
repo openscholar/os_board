@@ -9,7 +9,7 @@ function os_board_menu(){
     $items['os_board'] = array(
         'title' => 'os_board',
         'description' => 'Displays most visited sites and most visited pages',
-        'page callback' => 'mostVisitedSites', 
+        'page callback' => 'mostVisitedSites',
 		'access callback' => TRUE,
 	);
 	
@@ -32,14 +32,22 @@ function os_board_menu(){
 	return $items;
 }
 
+
 function mostVisitedSites(){
   drupal_add_js('sites/all/modules/os_board/os_board_analytics_api_v3_auth.js');
   drupal_add_js('sites/all/modules/os_board/os_board_analytics_api_v3.js');
   drupal_add_js('https://apis.google.com/js/client.js?onload=handleClientLoad', 'external');
   
-  return '<button id="authorize-button" style="visibility: hidden">Authorize</button><br/>
-          <button id="make-api-call-button" style="visibility: hidden">Get Visits</button>';
+  return '<button id="authorize-button" style="visibility: hidden">Authorize</button>
+          <button id="make-api-call-button" style="visibility: hidden">Get Visits</button>
+		  <table id = "statistics">
+			<tr>
+				<th>Most Visited Website</th>
+				<th>Total Visited Number</th>
+			</tr>
+		  </table>';
 }
+
 
 function mostVisitedPages(){
    $hello = 'hello';

@@ -112,12 +112,12 @@ function handleCoreReportingResults(results) {
     console.log('There was an error querying core reporting API: ' + results.message);
   } else {
     printResults(results);
+	printDrupalTable(results);
   }
 }
 
 
 function printResults(results) {
-
   if (results.rows && results.rows.length) {
     console.log('View (Profile) Name: ', results.profileInfo.profileName);
     console.log('Most Visited Website: ', results.rows[0][0]);
@@ -126,3 +126,28 @@ function printResults(results) {
     console.log('No results found');
   }
 }
+
+
+function printDrupalTable(results) {
+
+  var len = results.rows.length;
+  var table = document.getElementById('statistics');
+  
+  for (var i=0; i<len; i++) {
+    var row = table.insertRow(-1);
+	var cell1 = row.insertCell(0);
+	var cell2 = row.insertCell(1);
+	cell1.innerHTML = results.rows[i][0];
+    cell2.innerHTML = results.rows[i][1];
+  }
+}
+
+
+
+
+
+
+
+
+
+

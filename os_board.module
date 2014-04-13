@@ -7,15 +7,24 @@ function os_board_menu() {
   $items = array();
  
   $items['os_board'] = array(
-        'title' => 'Dash Board',
-        'description' => 'display dash board',
-		'page callback' => 'dash_board',
+        'title' => 'OS dashboard',
+        'description' => 'display most visited sites',
+		'page callback' => 'most_visited_sites',
 		'access callback' => TRUE,
     	);
 		
-  $items['os_board/list'] = array(
+  $items['os_board/most-visited-sites'] = array(
+    'title' => 'Most visited sites',
     'type' => MENU_DEFAULT_LOCAL_TASK,
-	'weight' => 10
+	'weight' => -10
+  );
+  $items['os_board/most-viewed-pages'] = array(
+    'title' => 'Most viewed pages',
+	'type' => MENU_LOCAL_TASK,
+    'description' => 'displays most viewed pages',
+	'page callback' => 'most_viewed_pages',
+	'access callback' => TRUE,
+	'weight' => -9  
   );
  
   return $items;
@@ -48,17 +57,16 @@ function os_board_menu() {
 		
  }
  
- function runMainDemo(&$analytics) {
+ function getStatistics(&$analytics,$type) {
   try {
     $profileId = getFirstProfileId($analytics);
 
     if (isset($profileId)) {
-      $results = getResults($analytics, $profileId);
-	  return printResults($results,$profileId);
+	  $results = getResults($analytics, $profileId, $type);
+	  return printResults($results,$profileId,$type);
     }
 
   } catch (apiServiceException $e) {
-    // Error from the API.
     drupal_set_message(t('There was an API error : ', array('%code'=>$e->getCode(), '%message'=> $e->getMessage())), 'error');
 	
   } catch (Exception $e) {
@@ -66,28 +74,6 @@ function os_board_menu() {
   }
   
 }
-
- function dash_board(){
-        $build = array();
-		$client = set_client();
-		
-        if (!$client->getAccessToken()) {
-		  $authUrl = $client->createAuthUrl();
-		  $build =  "<a class='login' href='$authUrl'>Connect Me!</a>";
-		} 
-		else 
-		{
-		  $analytics = new Google_AnalyticsService($client);
-		  $output = runMainDemo($analytics);
-		  $build = array(
-             'markup' => array(
-	         '#markup' => $output));
-    	} 
-		return $build;		
-}
-
-
-
 function getFirstprofileId(&$analytics) {
   $accounts = $analytics->management_accounts->listManagementAccounts();
 
@@ -120,8 +106,9 @@ function getFirstprofileId(&$analytics) {
   }
 }
 
-function getResults(&$analytics, $profileId) {
- return $analytics->data_ga->get(
+function getResults(&$analytics, $profileId, $type) {
+ if ($type == 'visits'){
+    return $analytics->data_ga->get(
         'ga:' . $profileId,
         '2014-03-03',
         '2014-04-10',
@@ -131,15 +118,35 @@ function getResults(&$analytics, $profileId) {
             'sort' => '-ga:visits',
             'max-results' => '25'));
   }
-
-
-function printResults(&$results, $profileId) {
-$header = array('Most Visited Sites', 'Number Visited');
- // $header[] = array ('Most visited Sites', 'Number of Visits');
+  elseif ($type == 'pageviews' ){
+    return $analytics->data_ga->get(
+        'ga:' . $profileId,
+        '2014-03-30',
+        '2014-04-13',
+        'ga:pageviews',
+        array(
+            'dimensions' => 'ga:hostname',
+			'metrics' => 'ga:pageviews',
+            'sort' => '-ga:pageviews',
+            'max-results' => '25'));
+  
+  }
+  }
+  
+function return_header($type){
+  if ($type == 'visits'){
+    $header = array('Most Visited Sites', 'Number Visited');  
+  }elseif ($type == 'pageviews') {
+     $header = array('Most Viewed Pages', 'Number Visited'); 
+  }
+  return $header;
+  }
+function printResults(&$results, $profileId, $type) {
+  $header = return_header($type);
   $output ='';
   $rows = array();
 
- // if (count($results->getRows()) > 0) {
+  if (count($results->getRows()) > 0) {
  
 	foreach($results->getRows() as $result) {
 		$rows[] = array(
@@ -149,7 +156,48 @@ $header = array('Most Visited Sites', 'Number Visited');
 		
 		} 
 		$output .=  theme('table', array('header' => $header, 'rows' => $rows));
-   
+   }
 	return $output;
 	    
 }
+ 
+ function most_visited_sites(){
+        $build = array();
+		
+		$client = set_client();
+		
+        if (!$client->getAccessToken()) {
+		  $authUrl = $client->createAuthUrl();
+		  $build =  "<a class='login' href='$authUrl'>Connect Me!</a>";
+		} 
+		else 
+		{
+		  $analytics = new Google_AnalyticsService($client);
+		  $output = getStatistics($analytics,'visits');
+		  $build = array(
+             'markup' => array(
+	         '#markup' => $output));
+    	} 
+		return $build;		
+}
+
+function most_viewed_pages(){
+        $build = array();
+		
+		$client = set_client();
+		
+        if (!$client->getAccessToken()) {
+		  $authUrl = $client->createAuthUrl();
+		  $build =  "<a class='login' href='$authUrl'>Connect Me!</a>";
+		} 
+		else 
+		{
+		  $analytics = new Google_AnalyticsService($client);
+		  $output = getStatistics($analytics,'pageviews');
+		  $build = array(
+             'markup' => array(
+	         '#markup' => $output));
+    	} 
+		return $build;		
+}
+

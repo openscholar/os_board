@@ -13,7 +13,7 @@ function os_board_menu() {
 		'access callback' => TRUE,
     	);
 		
-  $items['os_board/page'] = array(
+  $items['os_board/list'] = array(
     'type' => MENU_DEFAULT_LOCAL_TASK,
 	'weight' => 10
   );
@@ -24,62 +24,132 @@ function os_board_menu() {
 /**
  * Helper function to make a link.
  */
-function dash_board() {
-    //authorized credentials are stored in the accessToken object
-    drupal_session_start();
-	//create a new object of Google_Client by initializing the client object
-	$client = new Google_Client();
-	
-	$client->setApplicationName('OS Analytics Sample');
-	
-	/*$client->setClientId('1076290322756-6mdpp9nvh7u60h5e0nbqli9e16hsareu.apps.googleusercontent.com');
-	$client->setClientSecret('JZ-Sh0ULtkDQjhvNHGIuMIG-');
-	$client->setRedirectUri('http://localhost');
-	$client->setDeveloperKey('AIzaSyCc-URfEtLokUnLCZd4cko6f3u0lKl4vmU');
-	$client->setScopes('https://www.googleapis.com/auth/analytics.readonly');*/
-	
-	//properties of client object being set via details from google developers console
-	$client->setClientId('1076290322756-nvnhvfuukq8fnh2d9m2c8gltvahcv4ei.apps.googleusercontent.com');
-	$client->setClientSecret('BjsfVV0hPrlafgeXhMGWjh49');
-	$client->setRedirectUri('http://localhost/drupaltest/os_board');
-	$client->setDeveloperKey('AIzaSyCc-URfEtLokUnLCZd4cko6f3u0lKl4vmU');
-	$client->setScopes('https://www.googleapis.com/auth/analytics.readonly');
-	$client->setAccessType('offline_access');
-	
-	//set client object to true to use the authentication
-	$client->setUseObjects(true);
-	
-	if (isset($_GET['code'])){
-	  //authenticate the client
-	  $client->authenticate();
-	  //if the client is authenticated, the token is set for the user and the client is redirected to the proper page
-	  $_SESSION['token'] = $client->getAccessToken();
-	  $redirect = 'http://'.$_SERVER['HTTP_HOST']. $_SERVER['PHP_SELF'];
-	  header('Location: ' .filter_var($redirect, FILTER_SANITIZE_URL));
-	}
-	
-	if (isset($_SESSION['token'])){
-	  $client->setAccessToken($_SESSION['token']);
-	} 
-	
-	// this places a link 'connect me' which tells the user that google wishes to use the data from me and once the user
-	// is authenticated, it returns to the hello page'
-	if (!$client->getAccessToken()) {
-            $authUrl = $client->createAuthUrl();
-            return "<a class='login' href='$authUrl'>Connect Me!</a>";
+ function set_client(){
+        $client = new Google_Client();
+		$client->setApplicationName('Hello Analytics API Sample');
 
-        } else {
-		   //   return "i am authenticated";
-              $analytics = new Google_AnalyticsService($client);
-			 return get_OS_data($analytics);
-			
-        }
+		$client->setClientId('1076290322756-hc64iomu4b811qg9dsibabqlmbo8vfv9.apps.googleusercontent.com');
+		$client->setClientSecret('TOfDgyodcnn9tH_akAGknUV-');
+		$client->setRedirectUri('http://localhost/drupaltest/os_board');
+		$client->setScopes(array('https://www.googleapis.com/auth/analytics.readonly'));
 
+		$client->setUseObjects(true); 
+		if (isset($_GET['code'])) {
+		  $client->authenticate();
+		  $_SESSION['token'] = $client->getAccessToken();
+		  $redirect = 'http://localhost/drupaltest/os_board';
+		  header('Location: ' . filter_var($redirect, FILTER_SANITIZE_URL));
+		}
+       
+	   	if (isset($_SESSION['token'])) {
+		  $client->setAccessToken($_SESSION['token']);
+		}
+        return $client;
+		
+ }
+ 
+ function runMainDemo(&$analytics) {
+  try {
+    $profileId = getFirstProfileId($analytics);
+
+    if (isset($profileId)) {
+      $results = getResults($analytics, $profileId);
+	  return printResults($results,$profileId);
+    }
+
+  } catch (apiServiceException $e) {
+    // Error from the API.
+    drupal_set_message(t('There was an API error : ', array('%code'=>$e->getCode(), '%message'=> $e->getMessage())), 'error');
+	
+  } catch (Exception $e) {
+    drupal_set_message(t('There was a general error : ', array('%message'=>$e->getMessage())), 'error');
+  }
+  
 }
 
-function get_OS_data(&$analytics){
-
-
-
+ function dash_board(){
+        $build = array();
+		$client = set_client();
+		
+        if (!$client->getAccessToken()) {
+		  $authUrl = $client->createAuthUrl();
+		  $build =  "<a class='login' href='$authUrl'>Connect Me!</a>";
+		} 
+		else 
+		{
+		  $analytics = new Google_AnalyticsService($client);
+		  $output = runMainDemo($analytics);
+		  $build = array(
+             'markup' => array(
+	         '#markup' => $output));
+    	} 
+		return $build;		
 }
 
+
+
+function getFirstprofileId(&$analytics) {
+  $accounts = $analytics->management_accounts->listManagementAccounts();
+
+  if (count($accounts->getItems()) > 0) {
+    $items = $accounts->getItems();
+    $firstAccountId = $items[0]->getId();
+
+    $webproperties = $analytics->management_webproperties
+        ->listManagementWebproperties($firstAccountId);
+
+    if (count($webproperties->getItems()) > 0) {
+      $items = $webproperties->getItems();
+      $firstWebpropertyId = $items[0]->getId();
+
+      $profiles = $analytics->management_profiles
+          ->listManagementProfiles($firstAccountId, $firstWebpropertyId);
+
+      if (count($profiles->getItems()) > 0) {
+        $items = $profiles->getItems();
+        return $items[0]->getId();
+
+      } else {
+         drupal_set_message(t('No views (profiles) found for this user.'),'error');
+      }
+    } else {
+      drupal_set_message(t('No webproperties found for this user.'), 'error');
+    }
+  } else {
+    drupal_set_message(t('No accounts found for this user.'), 'error');
+  }
+}
+
+function getResults(&$analytics, $profileId) {
+ return $analytics->data_ga->get(
+        'ga:' . $profileId,
+        '2014-03-03',
+        '2014-04-10',
+        'ga:visits',
+        array(
+            'dimensions' => 'ga:hostname',
+            'sort' => '-ga:visits',
+            'max-results' => '25'));
+  }
+
+
+function printResults(&$results, $profileId) {
+$header = array('Most Visited Sites', 'Number Visited');
+ // $header[] = array ('Most visited Sites', 'Number of Visits');
+  $output ='';
+  $rows = array();
+
+ // if (count($results->getRows()) > 0) {
+ 
+	foreach($results->getRows() as $result) {
+		$rows[] = array(
+			  $result[0],
+			  $result[1],
+				);
+		
+		} 
+		$output .=  theme('table', array('header' => $header, 'rows' => $rows));
+   
+	return $output;
+	    
+}

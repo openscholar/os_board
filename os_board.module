@@ -21,8 +21,10 @@ define('START_DATE','2014-03-26');
 //the end date of the report
 define('END_DATE','2014-04-16');
 //the type of report : pageviews or visits
-define('METRICS2','ga:pageviews' );
-define('METRICS','ga:visits');
+define('METRICS_PAGEVIEWS','ga:pageviews' );
+define('METRICS_VISITS','ga:visits');
+define('SORT_PAGEVIEWS', '-ga:pageviews');
+define('SORT_VISITS', '-ga:visits');
 		
 
 //the main menu for os_board
@@ -57,80 +59,78 @@ function os_board_menu() {
   return $items;
 }
 
-/**
+function design_output($type,$header_title,$header_number,$app_name){
+    //variables definition block starts
+    //parameters for access: the hostname, sort and max-results to be output
+    if ($type == 'visits'){
+       $optparams = array ('dimensions' => 'ga:hostname','sort' => SORT_VISITS,'max-results' => '25');}
+    elseif ($type == 'pageviews') {
+        $optparams = array ('dimensions' => 'ga:hostname','sort' => SORT_PAGEVIEWS,'max-results' => '25');
+    }
+    //path to the private key
+    $file_contents = file_get_contents(drupal_get_path('module', 'os_board') . '/'.PRIVATE_KEY);
+    $header = array($header_title,$header_number);
+    //variables definition block ends
+    $output ='';
+    //create a new instance of Google_client
+    $client = new Google_Client();
+    // set the application name
+    $client->setApplicationName($app_name);
+    //set the credentials, clientid and accesstype
+    $client->setAssertionCredentials(new Google_AssertionCredentials(SERVICE_GMAIL, array(SCOPES), $file_contents));
+    $client->setClientId(CLIENT_ID);
+    $client->setAccessType(ACCESS_TYPE);
+
+    //create a new instance of google_analyticsservice
+    $service = new Google_AnalyticsService($client);
+    if ($type == 'visits'){
+        $results = $service->data_ga->get(ANALYTICS_ID, START_DATE, END_DATE, METRICS_VISITS, $optparams);}
+    else {
+        $results = $service->data_ga->get(ANALYTICS_ID, START_DATE, END_DATE, METRICS_PAGEVIEWS, $optparams);
+    }
+
+       //return the output
+    $output = array (
+    'results' => $results,
+    'header' => $header
+    );
+    return $output;
+}
+    /**
  * most_visited_sites
  * This returns the most visited sites by user. Data obtained from google analytics
  */
  function most_visited_sites(){
-       //variables definition block starts
-       //parameters for access: the hostname, sort and max-results to be output
-       $optparams_visits = array ('dimensions' => 'ga:hostname','sort' => '-ga:visits','max-results' => '25');
-       //path to the private key
-	   $file_contents = file_get_contents(drupal_get_path('module', 'os_board') . '/'.PRIVATE_KEY);
-       $header = array('Most Visited Sites', 'Number Visited'); 
-	   $output = '';
+       $output ='';
        $rows = array();
-       //variables definition block ends
+       $results = design_output('visits','Most Visited Sites','Number Visited','OpenScholar Board');
 
-       //create a new instance of Google_client
-	   $client = new Google_Client();
-       // set the application name
-       $client->setApplicationName('OpenScholar Board');
-       //set the credentials, clientid and accesstype
-	   $client->setAssertionCredentials(new Google_AssertionCredentials(SERVICE_GMAIL, array(SCOPES), $file_contents));  	
-       $client->setClientId(CLIENT_ID);           
-       $client->setAccessType(ACCESS_TYPE);
-
-       //create a new instance of google_analyticsservice
-       $service = new Google_AnalyticsService($client);
-       $results = $service->data_ga->get(ANALYTICS_ID, START_DATE, END_DATE, METRICS, $optparams_visits);
-
-        //tabulate the results in a table with header and data
-		foreach($results['rows'] as $result) {
+         //tabulate the results in a table with header and data
+		foreach($results['results']['rows'] as $result) {
 			$rows[] = array($result[0],$result[1]);
 		}	 
-        $output .=  theme('table', array('header' => $header, 'rows' => $rows));
+        $output .=  theme('table', array('header' => $results['header'], 'rows' => $rows));
 
         //return the output
-        return $output; 
+        return $output;
 		
  }
-
 /*
    * most_viewed_pages
    * This returns the most viewed pages by user. Data obtained from google analytics
   */
  function most_viewed_pages(){
-       //variables definition block starts
-       //parameters for access: the hostname, sort and max-results to be output
-       $optparams_pageviews = array ('dimensions' => 'ga:hostname','sort' => '-ga:pageviews','max-results' => '25');
-       //path to the private key
-       $file_contents = file_get_contents(drupal_get_path('module', 'os_board') . '/'.PRIVATE_KEY);
-       $header = array('Most Viewed Pages', 'Number Visited'); 
-	   $output = '';
-       $rows = array();
-       //variables definition block ends
+     $output ='';
+     $rows = array();
+     $results = design_output('pageviews','Most Viewed Pages','Number Visited','OpenScholar Board');
+   //  dvm($results['results']['rows']);
+     //tabulate the results in a table with header and data
+      foreach($results['results']['rows'] as $result) {
+         $rows[] = array($result[0],$result[1]);
+     }
+     $output .=  theme('table', array('header' => $results['header'], 'rows' => $rows));
 
-       //create a new instance of Google_client
-	   $client = new Google_Client();
-       // set the application name
-       $client->setApplicationName('OpenScholar Board');
-	   $client->setAssertionCredentials(new Google_AssertionCredentials(SERVICE_GMAIL, array(SCOPES), $file_contents));  	
-       $client->setClientId(CLIENT_ID);           
-       $client->setAccessType(ACCESS_TYPE);
-
-       //create a new instance of google_analyticsservice
-       $service = new Google_AnalyticsService($client);
-       $results = $service->data_ga->get(ANALYTICS_ID, START_DATE, END_DATE, METRICS2, $optparams_pageviews);
-
-        //tabulate the results in a table with header and data
-		foreach($results['rows'] as $result) {
-			$rows[] = array($result[0],$result[1]);
-		}	 
-        $output .=  theme('table', array('header' => $header, 'rows' => $rows));
-
-       //return the output
-        return $output; 
-		
+     //return the output
+     return $output; 
  }
  

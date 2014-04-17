@@ -3,33 +3,48 @@ require_once 'google-api-php-client/src/Google_Client.php';
 require_once 'google-api-php-client/src/contrib/Google_AnalyticsService.php';
 require_once 'google-api-php-client/src/contrib/Google_PlusService.php';
 
+//constants definition
+//scope defines the scope of the analytics - readonly
 define('SCOPES','https://www.googleapis.com/auth/analytics.readonly');
+//private key required for service accounts authentication
 define('PRIVATE_KEY','be3c3443dfb041d42ceb33ef76937b24878fe9c2-privatekey.p12');
+//clientid of the service account
 define('CLIENT_ID','1076290322756-mgfner7ir4gq87t88mqlq77ps8tp93sv.apps.googleusercontent.com');
-define('ACCESS_TYPE','offline_access');		
+//this defines the access type which is by default online unless specified as offline
+define('ACCESS_TYPE','offline_access');
+//the gmail of the service account holder
 define('SERVICE_GMAIL','1076290322756-mgfner7ir4gq87t88mqlq77ps8tp93sv@developer.gserviceaccount.com');
+//analyticsid of the account
 define('ANALYTICS_ID','ga:35141798');
+//the start date of the report
 define('START_DATE','2014-03-26');
+//the end date of the report
 define('END_DATE','2014-04-16');
+//the type of report : pageviews or visits
 define('METRICS2','ga:pageviews' );
 define('METRICS','ga:visits');
 		
 
+//the main menu for os_board
 function os_board_menu() {
   $items = array();
- 
+
+//the default menu for displaying the most visited sites
   $items['os_board'] = array(
         'title' => 'OS dashboard',
         'description' => 'display most visited sites',
 		'page callback' => 'most_visited_sites',
 		'access callback' => TRUE,
     	);
-		
+
+
   $items['os_board/most-visited-sites'] = array(
     'title' => 'Most visited sites',
     'type' => MENU_DEFAULT_LOCAL_TASK,
 	'weight' => -10
   );
+
+//the menu tab for displaying the most viewed pages
    $items['os_board/most-viewed-pages'] = array(
     'title' => 'Most viewed pages',
 	'type' => MENU_LOCAL_TASK,
@@ -43,52 +58,78 @@ function os_board_menu() {
 }
 
 /**
- * Helper function to make a link.
+ * most_visited_sites
+ * This returns the most visited sites by user. Data obtained from google analytics
  */
  function most_visited_sites(){
+       //variables definition block starts
+       //parameters for access: the hostname, sort and max-results to be output
        $optparams_visits = array ('dimensions' => 'ga:hostname','sort' => '-ga:visits','max-results' => '25');
+       //path to the private key
 	   $file_contents = file_get_contents(drupal_get_path('module', 'os_board') . '/'.PRIVATE_KEY);
        $header = array('Most Visited Sites', 'Number Visited'); 
 	   $output = '';
        $rows = array();
+       //variables definition block ends
+
+       //create a new instance of Google_client
 	   $client = new Google_Client();
-       $client->setApplicationName('Hello Analytics API Sample');
+       // set the application name
+       $client->setApplicationName('OpenScholar Board');
+       //set the credentials, clientid and accesstype
 	   $client->setAssertionCredentials(new Google_AssertionCredentials(SERVICE_GMAIL, array(SCOPES), $file_contents));  	
        $client->setClientId(CLIENT_ID);           
-       $client->setAccessType(ACCESS_TYPE);  
+       $client->setAccessType(ACCESS_TYPE);
 
+       //create a new instance of google_analyticsservice
        $service = new Google_AnalyticsService($client);
        $results = $service->data_ga->get(ANALYTICS_ID, START_DATE, END_DATE, METRICS, $optparams_visits);
-	     
+
+        //tabulate the results in a table with header and data
 		foreach($results['rows'] as $result) {
 			$rows[] = array($result[0],$result[1]);
 		}	 
         $output .=  theme('table', array('header' => $header, 'rows' => $rows));
-       			 
+
+        //return the output
         return $output; 
 		
  }
- 
+
+/*
+   * most_viewed_pages
+   * This returns the most viewed pages by user. Data obtained from google analytics
+  */
  function most_viewed_pages(){
+       //variables definition block starts
+       //parameters for access: the hostname, sort and max-results to be output
        $optparams_pageviews = array ('dimensions' => 'ga:hostname','sort' => '-ga:pageviews','max-results' => '25');
-      $file_contents = file_get_contents(drupal_get_path('module', 'os_board') . '/'.PRIVATE_KEY);
+       //path to the private key
+       $file_contents = file_get_contents(drupal_get_path('module', 'os_board') . '/'.PRIVATE_KEY);
        $header = array('Most Viewed Pages', 'Number Visited'); 
 	   $output = '';
        $rows = array();
+       //variables definition block ends
+
+       //create a new instance of Google_client
 	   $client = new Google_Client();
-       $client->setApplicationName('Hello Analytics API Sample');
+       // set the application name
+       $client->setApplicationName('OpenScholar Board');
 	   $client->setAssertionCredentials(new Google_AssertionCredentials(SERVICE_GMAIL, array(SCOPES), $file_contents));  	
        $client->setClientId(CLIENT_ID);           
-       $client->setAccessType(ACCESS_TYPE);  
+       $client->setAccessType(ACCESS_TYPE);
 
+       //create a new instance of google_analyticsservice
        $service = new Google_AnalyticsService($client);
        $results = $service->data_ga->get(ANALYTICS_ID, START_DATE, END_DATE, METRICS2, $optparams_pageviews);
-	     
+
+        //tabulate the results in a table with header and data
 		foreach($results['rows'] as $result) {
 			$rows[] = array($result[0],$result[1]);
 		}	 
         $output .=  theme('table', array('header' => $header, 'rows' => $rows));
-       			 
+
+       //return the output
         return $output; 
 		
  }

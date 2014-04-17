@@ -1,0 +1,155 @@
+<?php  
+require_once 'google-api-php-client/src/Google_Client.php';
+require_once 'google-api-php-client/src/contrib/Google_AnalyticsService.php';
+require_once 'google-api-php-client/src/contrib/Google_PlusService.php';
+
+//constants definition
+//scope defines the scope of the analytics - readonly
+define('SCOPES','https://www.googleapis.com/auth/analytics.readonly');
+//private key required for service accounts authentication
+define('PRIVATE_KEY','00c5052511a77ddfd2cde6a6d142072c5c369804-privatekey.p12');
+//clientid of the service account
+define('CLIENT_ID','531026460268-ji89k4gqaa20fa3gj5cshkfvamdlqamf.apps.googleusercontent.com');
+//this defines the access type which is by default online unless specified as offline
+define('ACCESS_TYPE','offline_access');
+//the gmail of the service account holder
+define('SERVICE_GMAIL','531026460268-ji89k4gqaa20fa3gj5cshkfvamdlqamf@developer.gserviceaccount.com');
+//analyticsid of the account
+define('ANALYTICS_ID','ga:35141798');
+//the start date of the report
+define('START_DATE','2014-03-26');
+//the end date of the report
+define('END_DATE','2014-04-16');
+//the type of report : pageviews or visits
+define('METRICS_PAGEVIEWS','ga:pageviews' );
+define('METRICS_VISITS','ga:visits');
+define('SORT_PAGEVIEWS', '-ga:pageviews');
+define('SORT_VISITS', '-ga:visits');
+define('HEADER_VISITS', 'Most Visited Sites');
+define('HEADER_VIEWS','Most viewed pages');
+define('VISITED_NUMBER','Number Visited');
+define('APP_HEADING','OpenScholar Board');
+define('DIMENSIONS','ga:hostname');
+define('MAX_RESULTS','25');
+
+
+//the main menu for os_board
+function os_board_menu() {
+  $items = array();
+
+//the default menu for displaying the most visited sites
+  $items['os_board'] = array(
+        'title' => 'OS dashboard',
+        'description' => 'display most visited sites',
+		'page callback' => 'most_visited_sites',
+		'access callback' => TRUE,
+    	);
+
+
+  $items['os_board/most-visited-sites'] = array(
+    'title' => 'Most visited sites',
+    'type' => MENU_DEFAULT_LOCAL_TASK,
+	'weight' => -10
+  );
+
+//the menu tab for displaying the most viewed pages
+   $items['os_board/most-viewed-pages'] = array(
+    'title' => 'Most viewed pages',
+	'type' => MENU_LOCAL_TASK,
+    'description' => 'displays most viewed pages',
+	'page callback' => 'most_viewed_pages',
+	'access callback' => TRUE,
+	'weight' => -9  
+  );
+  
+  return $items;
+}
+/*
+ * design_output
+ * parameter: type [visits,pageviews]
+ * output: results/data acquired from googleanalytics api
+ * main work of getting report data and for visits and pageviews done here and
+ * results sent to individual functions
+ */
+function design_output($type){
+    //variables definition block starts
+    $output ='';
+    //path to the private key
+    $file_contents = file_get_contents(drupal_get_path('module', 'os_board') . '/'.PRIVATE_KEY);
+    //variables definition block ends
+
+    //create a new instance of Google_client
+    $client = new Google_Client();
+    // set the application name
+    $client->setApplicationName(APP_HEADING);
+    //set the credentials, clientid and accesstype
+    $client->setAssertionCredentials(new Google_AssertionCredentials(SERVICE_GMAIL, array(SCOPES), $file_contents));
+    $client->setClientId(CLIENT_ID);
+    $client->setAccessType(ACCESS_TYPE);
+
+    //create a new instance of google_analyticsservice
+    $service = new Google_AnalyticsService($client);
+    if ($type == 'visits'){
+        $sort = SORT_VISITS;
+        $metrics = METRICS_VISITS;
+        $header = HEADER_VISITS;
+    }
+    else {
+        $sort = SORT_PAGEVIEWS;
+        $metrics = METRICS_PAGEVIEWS;
+        $header = HEADER_VIEWS;
+       }
+
+    //set optional parameters like sort, dimensions etc
+    $optparams = array ('dimensions' => DIMENSIONS,'sort' => $sort,'max-results' => MAX_RESULTS);
+    //get result (analytics object
+    $results = $service->data_ga->get(ANALYTICS_ID, START_DATE, END_DATE, $metrics, $optparams);
+    //create the header for the table
+    $header = array($header,VISITED_NUMBER);
+
+       //return the output
+    $output = array (
+    'results' => $results,
+    'header' => $header
+    );
+    return $output;
+}
+    /**
+ * most_visited_sites
+ * This returns the most visited sites by user. Data obtained from google analytics
+ */
+ function most_visited_sites(){
+       //declare variables
+       $output ='';
+       $rows = array();
+       //get results from the design_output function by sending the parameter of type = visits
+       $results = design_output('visits');
+
+         //tabulate the results in a table with header and data
+		foreach($results['results']['rows'] as $result) {
+			$rows[] = array($result[0],$result[1]);
+		}	 
+        $output .=  theme('table', array('header' => $results['header'], 'rows' => $rows));
+
+        //return the output
+        return $output;
+ }
+/*
+   * most_viewed_pages
+   * This returns the most viewed pages by user. Data obtained from google analytics
+  */
+ function most_viewed_pages(){
+     //declare variables
+     $output ='';
+     $rows = array();
+     //get results from the design_output function by sending the parameter of type = pageviews
+     $results = design_output('pageviews');
+     //tabulate the results in a table with header and data
+      foreach($results['results']['rows'] as $result) {
+         $rows[] = array($result[0],$result[1]);
+     }
+     $output .=  theme('table', array('header' => $results['header'], 'rows' => $rows));
+
+     //return the output
+     return $output;
+ }

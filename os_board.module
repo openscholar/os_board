@@ -25,7 +25,11 @@ define('METRICS_PAGEVIEWS','ga:pageviews' );
 define('METRICS_VISITS','ga:visits');
 define('SORT_PAGEVIEWS', '-ga:pageviews');
 define('SORT_VISITS', '-ga:visits');
-		
+define('HEADER_VISITS', 'Most Visited Sites');
+define('HEADER_VIEWS','Most viewed pages');
+define('VISITED_NUMBER','Number Visited');
+define('APP_HEADING','OpenScholar Board');
+
 
 //the main menu for os_board
 function os_board_menu() {
@@ -59,23 +63,26 @@ function os_board_menu() {
   return $items;
 }
 
-function design_output($type,$header_title,$header_number,$app_name){
+function design_output($type){
     //variables definition block starts
     //parameters for access: the hostname, sort and max-results to be output
     if ($type == 'visits'){
-       $optparams = array ('dimensions' => 'ga:hostname','sort' => SORT_VISITS,'max-results' => '25');}
+      // $optparams = array ('dimensions' => 'ga:hostname','sort' => SORT_VISITS,'max-results' => '25');
+        $header = array(HEADER_VISITS,VISITED_NUMBER);}
     elseif ($type == 'pageviews') {
-        $optparams = array ('dimensions' => 'ga:hostname','sort' => SORT_PAGEVIEWS,'max-results' => '25');
+        ;
+
     }
     //path to the private key
     $file_contents = file_get_contents(drupal_get_path('module', 'os_board') . '/'.PRIVATE_KEY);
-    $header = array($header_title,$header_number);
+
+
     //variables definition block ends
     $output ='';
     //create a new instance of Google_client
     $client = new Google_Client();
     // set the application name
-    $client->setApplicationName($app_name);
+    $client->setApplicationName(APP_HEADING);
     //set the credentials, clientid and accesstype
     $client->setAssertionCredentials(new Google_AssertionCredentials(SERVICE_GMAIL, array(SCOPES), $file_contents));
     $client->setClientId(CLIENT_ID);
@@ -84,9 +91,14 @@ function design_output($type,$header_title,$header_number,$app_name){
     //create a new instance of google_analyticsservice
     $service = new Google_AnalyticsService($client);
     if ($type == 'visits'){
-        $results = $service->data_ga->get(ANALYTICS_ID, START_DATE, END_DATE, METRICS_VISITS, $optparams);}
+        $optparams = array ('dimensions' => 'ga:hostname','sort' => SORT_VISITS,'max-results' => '25');
+        $results = $service->data_ga->get(ANALYTICS_ID, START_DATE, END_DATE, METRICS_VISITS, $optparams);
+        $header = array(HEADER_VISITS,VISITED_NUMBER);
+    }
     else {
+        $optparams = array ('dimensions' => 'ga:hostname','sort' => SORT_PAGEVIEWS,'max-results' => '25');
         $results = $service->data_ga->get(ANALYTICS_ID, START_DATE, END_DATE, METRICS_PAGEVIEWS, $optparams);
+        $header = array(HEADER_VIEWS,VISITED_NUMBER);
     }
 
        //return the output
@@ -103,7 +115,7 @@ function design_output($type,$header_title,$header_number,$app_name){
  function most_visited_sites(){
        $output ='';
        $rows = array();
-       $results = design_output('visits','Most Visited Sites','Number Visited','OpenScholar Board');
+       $results = design_output('visits');
 
          //tabulate the results in a table with header and data
 		foreach($results['results']['rows'] as $result) {
@@ -122,8 +134,7 @@ function design_output($type,$header_title,$header_number,$app_name){
  function most_viewed_pages(){
      $output ='';
      $rows = array();
-     $results = design_output('pageviews','Most Viewed Pages','Number Visited','OpenScholar Board');
-   //  dvm($results['results']['rows']);
+     $results = design_output('pageviews');
      //tabulate the results in a table with header and data
       foreach($results['results']['rows'] as $result) {
          $rows[] = array($result[0],$result[1]);
@@ -131,6 +142,6 @@ function design_output($type,$header_title,$header_number,$app_name){
      $output .=  theme('table', array('header' => $results['header'], 'rows' => $rows));
 
      //return the output
-     return $output; 
+     return $output;
  }
  

@@ -3,6 +3,18 @@ require_once 'google-api-php-client/src/Google_Client.php';
 require_once 'google-api-php-client/src/contrib/Google_AnalyticsService.php';
 require_once 'google-api-php-client/src/contrib/Google_PlusService.php';
 
+define('SCOPES','https://www.googleapis.com/auth/analytics.readonly');
+define('PRIVATE_KEY','be3c3443dfb041d42ceb33ef76937b24878fe9c2-privatekey.p12');
+define('CLIENT_ID','1076290322756-mgfner7ir4gq87t88mqlq77ps8tp93sv.apps.googleusercontent.com');
+define('ACCESS_TYPE','offline_access');		
+define('SERVICE_GMAIL','1076290322756-mgfner7ir4gq87t88mqlq77ps8tp93sv@developer.gserviceaccount.com');
+define('ANALYTICS_ID','ga:35141798');
+define('START_DATE','2014-03-26');
+define('END_DATE','2014-04-16');
+define('METRICS2','ga:pageviews' );
+define('METRICS','ga:visits');
+		
+
 function os_board_menu() {
   $items = array();
  
@@ -18,7 +30,7 @@ function os_board_menu() {
     'type' => MENU_DEFAULT_LOCAL_TASK,
 	'weight' => -10
   );
-  /* $items['os_board/most-viewed-pages'] = array(
+   $items['os_board/most-viewed-pages'] = array(
     'title' => 'Most viewed pages',
 	'type' => MENU_LOCAL_TASK,
     'description' => 'displays most viewed pages',
@@ -26,7 +38,7 @@ function os_board_menu() {
 	'access callback' => TRUE,
 	'weight' => -9  
   );
-  */
+  
   return $items;
 }
 
@@ -34,56 +46,50 @@ function os_board_menu() {
  * Helper function to make a link.
  */
  function most_visited_sites(){
-       define('SCOPES','https://www.googleapis.com/auth/analytics.readonly');
-	   define('PRIVATE_KEY','be3c3443dfb041d42ceb33ef76937b24878fe9c2-privatekey.p12');
-	   define('CLIENT_ID','1076290322756-mgfner7ir4gq87t88mqlq77ps8tp93sv.apps.googleusercontent.com');
-	   define('ACCESS_TYPE','offline_access');		
-	   define('SERVICE_GMAIL','1076290322756-mgfner7ir4gq87t88mqlq77ps8tp93sv@developer.gserviceaccount.com');
-	   define('ANALYTICS_ID','ga:35141798');
-	   define('START_DATE','2014-03-26');
-	   define('END_DATE','2014-04-14');
-	   define('METRICS','ga:visits');
-	   define('SORT','-ga:visits');
+       $optparams_visits = array ('dimensions' => 'ga:hostname','sort' => '-ga:visits','max-results' => '25');
 	   $file_contents = file_get_contents(drupal_get_path('module', 'os_board') . '/'.PRIVATE_KEY);
-		
-		
-		
-        $client = new Google_Client();
-		$client->setApplicationName('Hello Analytics API Sample');
-		$client->setAssertionCredentials(new Google_AssertionCredentials(
-		                                 '1076290322756-mgfner7ir4gq87t88mqlq77ps8tp93sv@developer.gserviceaccount.com', 
-										 array('https://www.googleapis.com/auth/analytics.readonly'), 
-										 $file_contents));  	
-        $client->setClientId('1076290322756-mgfner7ir4gq87t88mqlq77ps8tp93sv.apps.googleusercontent.com');           
-        $client->setAccessType(ACCESS_TYPE);  
+       $header = array('Most Visited Sites', 'Number Visited'); 
+	   $output = '';
+       $rows = array();
+	   $client = new Google_Client();
+       $client->setApplicationName('Hello Analytics API Sample');
+	   $client->setAssertionCredentials(new Google_AssertionCredentials(SERVICE_GMAIL, array(SCOPES), $file_contents));  	
+       $client->setClientId(CLIENT_ID);           
+       $client->setAccessType(ACCESS_TYPE);  
 
-		//ANALYTICS_ID,START_DATE,END_DATE,'ga:visits');
-		$optparams = array (
-		  'dimensions' => 'ga:hostname',
-		  'sort' => '-ga:pageviews',
-		  'max-results' => '25');
-        $service = new Google_AnalyticsService($client);
-        $results = $service->data_ga->get(
-	            	ANALYTICS_ID,
-					'2014-03-30',
-					'2014-04-13',
-					'ga:pageviews',
-					$optparams
-					
-				    );
-         $header = array('Most Viewed Pages', 'Number Visited'); 
-		 $output = array();
-        $rows = array();
+       $service = new Google_AnalyticsService($client);
+       $results = $service->data_ga->get(ANALYTICS_ID, START_DATE, END_DATE, METRICS, $optparams_visits);
+	     
 		foreach($results['rows'] as $result) {
-			$rows[] = array(
-				$result[0],
-				$result[1]
-								);
+			$rows[] = array($result[0],$result[1]);
 		}	 
-         $output .=  theme('table', array('header' => $header, 'rows' => $rows));
+        $output .=  theme('table', array('header' => $header, 'rows' => $rows));
        			 
-         return $output; 
+        return $output; 
 		
  }
  
+ function most_viewed_pages(){
+       $optparams_pageviews = array ('dimensions' => 'ga:hostname','sort' => '-ga:pageviews','max-results' => '25');
+      $file_contents = file_get_contents(drupal_get_path('module', 'os_board') . '/'.PRIVATE_KEY);
+       $header = array('Most Viewed Pages', 'Number Visited'); 
+	   $output = '';
+       $rows = array();
+	   $client = new Google_Client();
+       $client->setApplicationName('Hello Analytics API Sample');
+	   $client->setAssertionCredentials(new Google_AssertionCredentials(SERVICE_GMAIL, array(SCOPES), $file_contents));  	
+       $client->setClientId(CLIENT_ID);           
+       $client->setAccessType(ACCESS_TYPE);  
+
+       $service = new Google_AnalyticsService($client);
+       $results = $service->data_ga->get(ANALYTICS_ID, START_DATE, END_DATE, METRICS2, $optparams_pageviews);
+	     
+		foreach($results['rows'] as $result) {
+			$rows[] = array($result[0],$result[1]);
+		}	 
+        $output .=  theme('table', array('header' => $header, 'rows' => $rows));
+       			 
+        return $output; 
+		
+ }
  

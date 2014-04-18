@@ -1,0 +1,44 @@
+<?php  header('Refresh: 5');
+require_once 'google-api-php-client/src/Google_Client.php';
+require_once 'google-api-php-client/src/contrib/Google_AnalyticsService.php';
+require_once 'google-api-php-client/src/contrib/Google_PlusService.php';
+require_once 'realtime_os.inc';
+
+
+//the main menu for os_board
+function realtime_os_menu() {
+  $items = array();
+
+//the default menu for displaying the most visited sites
+  $items['realtime_os'] = array(
+        'title' => 'OS dashboard real time',
+        'description' => 'displays most active users',
+		'page callback' => 'active_users',
+		'access callback' => TRUE,
+    	);
+
+
+  $items['realtime_os/active_users'] = array(
+    'title' => 'Active Users',
+    'type' => MENU_DEFAULT_LOCAL_TASK,
+	'weight' => -10
+  );
+
+ return $items;
+}
+/*
+ * design_output
+ * parameter: type [visits,pageviews]
+ * output: results/data acquired from googleanalytics api
+ * main work of getting report data and for visits and pageviews done here and
+ * results sent to individual functions
+ */
+ function active_users(){
+     $realtimeUsers = realtime_users();
+	// dvm($realtimeUsers);
+	// dvm($realtimeUsers);
+    $build = array (
+	  '#markup' => '<b> Active Users: '.$realtimeUsers['rows'][0][0].'</b>'
+	 );
+   return $build;    
+	}

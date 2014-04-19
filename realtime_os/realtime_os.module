@@ -39,6 +39,7 @@ function realtime_os_menu() {
      drupal_add_js(drupal_get_path('module', 'realtime_os') . '/realtime_os.js');
         
      $realtimeUsers = realtime_users();
+<<<<<<< HEAD:realtime_os.module
      $build = array(
         '#markup'=>	 '<div id="realtime_users"><b>Active Users:  <font color="green"><b> '.$realtimeUsers['rows'][0][0].'</b></font></b></div>');
 		
@@ -48,3 +49,12 @@ function realtime_os_menu() {
   }
   
   
+=======
+	// dvm($realtimeUsers);
+	// dvm($realtimeUsers);
+    $build = array (
+	  '#markup' => '<b> Active Users: '.$realtimeUsers['rows'][0][0].'</b>'
+	 );
+   return $build;    
+	}
+>>>>>>> ac49dca2b53d9cc9ea1668637e71d6ec072c1700:realtime_os/realtime_os.module

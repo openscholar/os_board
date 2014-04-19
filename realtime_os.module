@@ -1,4 +1,4 @@
-<?php  header('Refresh: 5');
+<?php  
 require_once 'google-api-php-client/src/Google_Client.php';
 require_once 'google-api-php-client/src/contrib/Google_AnalyticsService.php';
 require_once 'google-api-php-client/src/contrib/Google_PlusService.php';
@@ -33,12 +33,18 @@ function realtime_os_menu() {
  * main work of getting report data and for visits and pageviews done here and
  * results sent to individual functions
  */
+ 
+ 
  function active_users(){
+     drupal_add_js(drupal_get_path('module', 'realtime_os') . '/realtime_os.js');
+        
      $realtimeUsers = realtime_users();
-	// dvm($realtimeUsers);
-	// dvm($realtimeUsers);
-    $build = array (
-	  '#markup' => '<b> Active Users: '.$realtimeUsers['rows'][0][0].'</b>'
-	 );
-   return $build;    
-	}
+     $build = array(
+        '#markup'=>	 '<div id="realtime_users"><b>Active Users:  <font color="green"><b> '.$realtimeUsers['rows'][0][0].'</b></font></b></div>');
+		
+     return $build;
+//	 exit();
+	// exit();
+  }
+  
+  

@@ -17,7 +17,7 @@ function realtime_users(){
     //variables definition block starts
     $output ='';
     //path to the private key
-    $file_contents = file_get_contents(drupal_get_path('module', 'os_board') . '/'.REALTIME_PRIVATE_KEY);
+    $file_contents = file_get_contents(drupal_get_path('module', 'realtime_os') . '/'.REALTIME_PRIVATE_KEY);
     //variables definition block ends
 
     //create a new instance of Google_client

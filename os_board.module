@@ -1,0 +1,90 @@
+<?php  
+require_once 'google-api-php-client/src/Google_Client.php';
+require_once 'google-api-php-client/src/contrib/Google_AnalyticsService.php';
+require_once 'google-api-php-client/src/contrib/Google_PlusService.php';
+require_once 'os_board_constants.inc';
+
+//constants definition
+//scope defines the scope of the analytics - readonly
+
+
+//the main menu for os_board
+function os_board_menu() {
+  $items = array();
+
+//the default menu for displaying the most visited sites
+  $items['os_board'] = array(
+        'title' => 'OS dashboard',
+        'description' => 'display most visited sites',
+		'page callback' => 'most_visited_sites',
+		'access callback' => TRUE,
+    	);
+
+
+  $items['os_board/most-visited-sites'] = array(
+    'title' => 'Most visited sites',
+    'type' => MENU_DEFAULT_LOCAL_TASK,
+	'weight' => -10
+  );
+
+//the menu tab for displaying the most viewed pages
+   $items['os_board/most-viewed-pages'] = array(
+    'title' => 'Most viewed pages',
+	'type' => MENU_LOCAL_TASK,
+    'description' => 'displays most viewed pages',
+	'page callback' => 'most_viewed_pages',
+	'access callback' => TRUE,
+	'weight' => -9  
+  );
+  
+  return $items;
+}
+
+    /**
+ * most_visited_sites
+ * This returns the most visited sites by user. Data obtained from google analytics
+ */
+ function most_visited_sites(){
+       //declare variables
+     $header = array($header,VISITED_NUMBER);
+     //return the output
+     $output = array (
+         'results' => $results,
+         'header' => $header
+     );
+
+       $output ='';
+       $rows = array();
+       //get results from the design_output function by sending the parameter of type = visits
+       $results = design_output('visits');
+
+         //tabulate the results in a table with header and data
+		foreach($results['results']['rows'] as $result) {
+			$rows[] = array($result[0],$result[1]);
+		}	 
+        $output .=  theme('table', array('header' => $results['header'], 'rows' => $rows));
+
+        //return the output
+        return $output;
+		
+ }
+/*
+   * most_viewed_pages
+   * This returns the most viewed pages by user. Data obtained from google analytics
+  */
+ function most_viewed_pages(){
+     //declare variables
+     $output ='';
+     $rows = array();
+     //get results from the design_output function by sending the parameter of type = pageviews
+     $results = design_output('pageviews');
+     //tabulate the results in a table with header and data
+      foreach($results['results']['rows'] as $result) {
+         $rows[] = array($result[0],$result[1]);
+     }
+     $output .=  theme('table', array('header' => $results['header'], 'rows' => $rows));
+
+     //return the output
+     return $output;
+ }
+ 

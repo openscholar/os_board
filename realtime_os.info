@@ -1,4 +1,0 @@
-name = Realtime OpenScholar
-description = Realtime Data for OS
-core = 7.x
-files[] = realtime_os.module

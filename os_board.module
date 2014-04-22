@@ -1,7 +1,6 @@
 <?php  
 require_once 'google-api-php-client/src/Google_Client.php';
 require_once 'google-api-php-client/src/contrib/Google_AnalyticsService.php';
-require_once 'google-api-php-client/src/contrib/Google_PlusService.php';
 require_once 'os_board_constants.inc';
 
 //constants definition

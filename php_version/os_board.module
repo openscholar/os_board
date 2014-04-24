@@ -9,11 +9,16 @@ define('CLIENT_ID','531026460268-ji89k4gqaa20fa3gj5cshkfvamdlqamf.apps.googleuse
 define('ACCESS_TYPE','offline_access');
 define('SERVICE_GMAIL','531026460268-ji89k4gqaa20fa3gj5cshkfvamdlqamf@developer.gserviceaccount.com');
 define('ANALYTICS_ID','ga:35141798');
+
 define('START_DATE','2014-03-26');
-define('END_DATE','2014-04-16');
+define('END_DATE','2014-04-24');
+
 define('METRICS_PAGEVIEWS','ga:pageviews' );
 define('METRICS_VISITS','ga:visits');
+
 define('ACTIVE_VISITORS', 'rt:activeVisitors');
+define('ACTIVE_PAGEVIEWS', 'rt:pageviews');
+
 define('SORT_PAGEVIEWS', '-ga:pageviews');
 define('SORT_VISITS', '-ga:visits');
 define('HEADER_VISITS', 'Most Visited Sites');
@@ -21,7 +26,8 @@ define('HEADER_VIEWS','Most viewed pages');
 define('VISITED_NUMBER','Number Visited');
 define('APP_HEADING','OpenScholar Board');
 define('DIMENSIONS','ga:hostname');
-define('MAX_RESULTS','25');
+define('DIMENSIONS_PAGE','ga:hostname,ga:pagePath');
+define('MAX_RESULTS','10');
 
 
 function os_board_menu() {
@@ -49,13 +55,22 @@ function os_board_menu() {
 		'weight' => -9  
   );
   
-  $items['os_board/rt-visits'] = array(
-		'title' => 'Real Time visits',
+  $items['os_board/real-time-visitors'] = array(
+		'title' => 'Active Visitors',
 		'type' => MENU_LOCAL_TASK,
-		'description' => 'displays real time visits.',
-		'page callback' => 'real_time_visits',
+		'description' => 'displays real time visitors.',
+		'page callback' => 'real_time_visitors',
 		'access callback' => TRUE,
 		'weight' => -8  
+  );
+  
+  $items['os_board/real-time-pageViews'] = array(
+		'title' => 'Real Time Page Views',
+		'type' => MENU_LOCAL_TASK,
+		'description' => 'displays real time visits.',
+		'page callback' => 'real_time_pageViews',
+		'access callback' => TRUE,
+		'weight' => -7 
   );
   
   return $items;
@@ -104,8 +119,8 @@ function most_visited_sites(){
 function most_viewed_pages(){
   $output ='';
   $rows = array();
-  $optparams = array ('dimensions' => DIMENSIONS,'sort' => SORT_PAGEVIEWS,'max-results' => MAX_RESULTS);
-  $header = array(HEADER_VIEWS, VISITED_NUMBER);
+  $optparams = array ('dimensions' => DIMENSIONS_PAGE,'sort' => SORT_PAGEVIEWS,'max-results' => MAX_RESULTS);
+  $header = array('Host Name', HEADER_VIEWS, VISITED_NUMBER);
   $service = authen_client();
   
   try {
@@ -120,7 +135,7 @@ function most_viewed_pages(){
   
   $results = array('results' => $results);
   foreach($results['results']['rows'] as $result) {
-    $rows[] = array($result[0],$result[1]);
+    $rows[] = array($result[0],$result[1],$result[2]);
   }
   
   $output .=  theme('table', array('header' => $header, 'rows' => $rows));
@@ -128,11 +143,12 @@ function most_viewed_pages(){
 }
 
  
-function real_time_visits() {
-  $output ='';
-  $rows = array();
-  $header = array("Active Visitors");
-  $optParams = array('dimensions' => 'rt:medium');
+function real_time_visitors() {
+  drupal_add_js(drupal_get_path('module', 'os_board') . '/os_board_rt_visitors.js');
+  //$output = '';
+  //$rows = array();
+  //$header = array("Active Visitors");
+  $optParams = array();
   $service = authen_client();
   
   try {
@@ -143,16 +159,58 @@ function real_time_visits() {
      $error = $e->getMessage();
   }
 	 
-  foreach($results as $result) {
-    $rows[] = $result;
-  }
+  $data = $results['rows'][0][0];
 	  
-  $final = array($rows[7]);
-  $output .=  theme('table', array('header' => $header, 'rows' => $final));
-  return $output;
+  //$output .=  theme('table', array('header' => $header, 'rows' => $final, 'id' => 'real_time',));
+  
+  
+  //dvm($rows);
+  $build = array(
+             'type' => 'markup', 
+             '#markup'=> '<div id="realtime_users"><b>Active Users:  <font color="red"><b> '.$data.'</b></font></b></div>');
+  //drupal_json_output($temp);
+  return $build;		   
 }
- 
- 
+
+
+function real_time_pageViews() {
+  drupal_add_js(drupal_get_path('module', 'os_board') . '/os_board_rt_pageviews.js');
+  $optParams = array('dimensions' => 'rt:pageTitle,rt:pagePath',
+                     'max-results' => 5, 
+					 'sort' =>  '-rt:pageviews');
+  $service = authen_client();
+  
+  try {
+    $results = $service->data_realtime->get(ANALYTICS_ID,
+	                                        ACTIVE_PAGEVIEWS,
+		                                    $optParams);
+  }catch (apiServiceException $e) {
+     $error = $e->getMessage();
+  }
+	 
+  
+  $data = $results['rows'][0];
+  $temp = implode ("->", $data);
+	  
+  //$final = array($rows[7]);
+  //$temp = implode ("|", $rows[8]);
+  //$output .=  theme('table', array('header' => $header, 'rows' => $final, 'id' => 'real_time',));
+  
+  
+  //dvm($rows);
+  $build = array(
+             'type' => 'markup', 
+             '#markup'=> '<div id="realtime_pages"> 
+			              <p> '.implode ("->", $results['rows'][0]).' </p>
+						  <p> '.implode ("->", $results['rows'][1]).' </p>
+						  <p> '.implode ("->", $results['rows'][2]).' </p>
+						  <p> '.implode ("->", $results['rows'][3]).' </p>
+						  <p> '.implode ("->", $results['rows'][4]).' </p>
+						  </div>');
+  //drupal_json_output($temp);
+  return $build;		   
+}
+
  
  
  

@@ -1,4 +1,4 @@
-name = Realtime OpenScholar
-description = Realtime Data for OS
+name = OS Board
+description = Google Realtime and analytics statistics for OS-OPS
 core = 7.x
-files[] = realtime_os.module
+; add files?

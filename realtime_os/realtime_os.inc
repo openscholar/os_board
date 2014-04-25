@@ -13,7 +13,7 @@ define('REALTIME_ANALYTICS_ID','ga:35141798');
 //the start date of the report
 
 
-function realtime_users(){
+function check_credentials(){
     //variables definition block starts
     $output ='';
     //path to the private key
@@ -30,16 +30,72 @@ function realtime_users(){
     $client->setClientId(REALTIME_CLIENT_ID);
     $client->setAccessType(REALTIME_ACCESS_TYPE);
 	$client->getAccessToken();
-	/*if($client->isAccessTokenExpired()){
-	   $newAccessToken = drupal_json_decode($client->getAccessToken());
-	   $client->refreshToken($newAccessToken->refresh_token);} */
-
+	
     //create a new instance of google_analyticsservice
     $service = new Google_AnalyticsService($client);
     //set optional parameters like sort, dimensions etc
-    $optparams = array ('dimensions' => 'rt:source');
+	return $service;
+	
+	}
+	
+	
+function os_design_output($type){
+    //variables definition block starts
+    $output ='';
+	$app_name = 'OS Board';
+	$metrics_pageviews = 'ga:pageviews';
+    $metrics_visits = 'ga:visits';
+    $sort_pageviews = '-ga:pageviews';
+    $sort_visits = '-ga:visits';
+   
+    $dimensions = 'ga:hostname';
+    $max_results = 5;
+    //path to the private key
+    $file_contents = file_get_contents(drupal_get_path('module', 'os_board') . '/'.REALTIME_PRIVATE_KEY);
+    //variables definition block ends
+
+    //create a new instance of Google_client
+    $client = new Google_Client();
+    // set the application name
+    $client->setApplicationName($app_name);
+    //set the credentials, clientid and accesstype
+    $client->setAssertionCredentials(new Google_AssertionCredentials(REALTIME_SERVICE_GMAIL, array(REALTIME_SCOPES), $file_contents));
+    $client->setClientId(REALTIME_CLIENT_ID);
+    $client->setAccessType('offline_access');
+    $client->setAccessType('offline_access');
+
+    //create a new instance of google_analyticsservice
+    $service = new Google_AnalyticsService($client);
+    if ($type == 'visits'){
+        $sort = $sort_visits;
+        $metrics = $metrics_visits;
+     }
+    else {
+        $sort = $sort_pageviews;
+        $metrics = $metrics_pageviews;
+    }
+
+    //set optional parameters like sort, dimensions etc
+    $optparams = array ('dimensions' => $dimensions,'sort' => $sort,'max-results' => $max_results);
     //get result (analytics object
-    $results = $service->data_realtime->get(REALTIME_ANALYTICS_ID,'rt:activeUsers');
+    $results = $service->data_ga->get(ANALYTICS_ID, START_DATE, END_DATE, $metrics, $optparams);
     //create the header for the table
     return $results;
+}
+
+function return_users(){
+        $service = check_credentials();
+		$optparams = array ('dimensions' => 'rt:source');
+		//get result (analytics object
+		$results = $service->data_realtime->get(REALTIME_ANALYTICS_ID,'rt:activeUsers');
+		return $results;
+	
+}
+
+function return_pages(){
+        $service = check_credentials();
+        $optparams = array ('dimensions' => 'rt:pagePath,rt:pageTitle', 'sort' => '-rt:pageviews', 'max-results' => 5);
+		//get result (analytics object
+		$results = $service->data_realtime->get(REALTIME_ANALYTICS_ID,'rt:pageviews', $optparams);
+        return $results;
 }

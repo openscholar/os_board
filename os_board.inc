@@ -1,22 +1,43 @@
 <?php
+
+// @TODO: document this param. (What is it used for, would it ever change, etc.)
 define('SCOPES','https://www.googleapis.com/auth/analytics.readonly');
-//private key required for service accounts authentication
+
+// @FIXME: This should use the drupal variable API.
+// private key required for service accounts authentication
+// i.e.
+// @code
+// $private_key = variable_get('os_board_private_key');
+// @endcode
 define('PRIVATE_KEY','be3c3443dfb041d42ceb33ef76937b24878fe9c2-privatekey.p12');
+
+// @FIXME (see above)
 //clientid of the service account
 define('CLIENT_ID','1076290322756-mgfner7ir4gq87t88mqlq77ps8tp93sv.apps.googleusercontent.com');
+
 //this defines the access type which is by default online unless specified as offline
 define('ACCESS_TYPE','offline_access');
+
+// @FIXME (see above)
 //the gmail of the service account holder
 define('SERVICE_GMAIL','1076290322756-mgfner7ir4gq87t88mqlq77ps8tp93sv@developer.gserviceaccount.com');
+
+// @FIXME (see above)
 //analyticsid of the account
 define('ANALYTICS_ID','ga:35141798');
+
+// @TODO remove
 //the start date of the report
 
-
+/**
+ * @TODO document this function
+ */
 function check_credentials(){
+    // @TODO: For variables, use variable_get. For contants, no change needed.
     //variables definition block starts
     $output ='';
     //path to the private key
+    // @TODO: Use variable value, not file_get_contents() and a key file.
     $file_contents = file_get_contents(drupal_get_path('module', 'os_board') . '/'.PRIVATE_KEY);
     //variables definition block ends
 
@@ -36,7 +57,10 @@ function check_credentials(){
 	return $service;
 	
 	}	
-	
+
+/**
+ * @TODO document this function.
+ */
 function os_design_output($type){
     //variables definition block starts
     $output ='';
@@ -67,6 +91,9 @@ function os_design_output($type){
     return $results;
 }
 
+/**
+ * @TODO document this function.
+ */
 function return_users(){
         $rt_source = 'rt:source';
 		$rt_users = 'rt:activeUsers';
@@ -77,6 +104,9 @@ function return_users(){
 		return $results;	
 }
 
+/**
+ * @TODO document this function.
+ */
 function return_pages(){
         $dimensions = 'rt:pagePath,rt:pageTitle';
 		$sort = '-rt:pageviews';

@@ -28,7 +28,35 @@ function realtime_os_menu() {
     'type' => MENU_DEFAULT_LOCAL_TASK,
 	'weight' => -10
   );
-
+  
+  $items['realtime_os/most-viewed-pages'] = array(
+    'title' => 'Most viewed pages',
+	'type' => MENU_LOCAL_TASK,
+    'description' => 'displays most viewed pages',
+	'page callback' => 'viewed_pages',
+	'access callback' => TRUE,
+	'weight' => -9  
+  );
+  
+  $items['realtime_os/most-visited-sites'] = array(
+    'title' => 'Most visited sites',
+	'type' => MENU_LOCAL_TASK,
+    'description' => 'displays most visited sites',
+	'page callback' => 'visited_sites',
+	'access callback' => TRUE,
+	'weight' => -8  
+  );
+  
+  /*$items['realtime_os/active_pages'] = array(
+    'title' => 'Active pages',
+	'type' => MENU_LOCAL_TASK,
+    'description' => 'displays most active',
+	'page callback' => 'get_pages',
+	'access callback' => TRUE,
+	'weight' => -7
+  
+  );
+*/
  return $items;
 }
 
@@ -38,17 +66,80 @@ function realtime_os_menu() {
 * calls the realtime_users function and the return value is json encoded
 */
 
- 
+ /*
+ $build = array(
+       '#markup'=>	 '<div id="realtime_users"><b>Active Users:  <font color="green"><b> '.$realtimeUsers['rows'][0][0].'</b></font></b></div>
+	                 <div id="realtime_pages"><b>Active Pages:
+			              <p> '.implode ("  ->", $results['rows'][0]).' </p>
+						  <p> '.implode ("  ->", $results['rows'][1]).' </p>
+						  <p> '.implode ("  ->", $results['rows'][2]).' </p>
+						  <p> '.implode ("  ->", $results['rows'][3]).' </p>
+						  <p> '.implode ("  ->", $results['rows'][4]).' </p>
+						  </div>'); */
  function active_users(){
      drupal_add_js(drupal_get_path('module', 'realtime_os') . '/realtime_os.js');
+	// drupal_add_js(drupal_get_path('module', 'realtime_os') . '/realtime_os_1.js');
         
-     $realtimeUsers = realtime_users();
+     $results = return_pages();
+	 $pages = $results['rows'];
+        
+     $realtimeUsers = return_users();
      $realtimeNumbers = $realtimeUsers['rows'][0][0];
-   //  $build = array(
-   //     '#markup'=>	 '<div id="realtime_users"><b>Active Users:  <font color="green"><b> '.$realtimeUsers['rows'][0][0].'</b></font></b></div>');
+     $build = array(
+       '#markup'=>	 '<div id="realtime_users"><b>Active Users:  <font color="green"><b> '.$realtimeUsers['rows'][0][0].'</b></font></b></div><br/>
+	                  <div id="realtime_pages"><b>Active Pages:</b><br/>'
+			              .implode ('       -> ', $pages[0]).'<br/>'
+						  .implode ('       -> ', $pages[1]).' <br/>'
+						  .implode ('       -> ', $pages[2]).' <br/>'
+						  .implode ('       -> ', $pages[3]).' <br/>'
+						  .implode ('       -> ', $pages[4]).' <br/>
+						  </div>');
 		
-    drupal_json_output($realtimeNumbers);
-
+    //drupal_json_output($realtimeNumbers);
+           return $build;
   }
   
-  
+  function viewed_pages(){
+     //declare variables
+     $output ='';
+	 $rows = array();
+	 //create header for data
+	 $header_views = 'Most viewed pages';
+     $visited_numbers = 'Number Visited';
+	 $header = array($header_views,$visited_numbers);
+     
+     //get results from the design_output function by sending the parameter of type = pageviews
+     $results = os_design_output('pageviews');
+     //tabulate the results in a table with header and data
+     foreach($results['rows'] as $result) {
+         $rows[] = array($result[0],$result[1]);
+     }
+     $output .=  theme('table', array('header' => $header, 'rows' => $rows));
+
+     //return the output
+    return $output;
+	//drupal_json_output($rows);
+ }
+ 
+ function visited_sites(){
+     $header_visits =  'Most Visited Sites';
+     $visited_numbers = 'Number Visited';
+     $output ='';
+     $rows = array();
+	 $header = array($header_visits,$visited_numbers);
+     //get results from the design_output function by sending the parameter of type = visits
+     $results = os_design_output('visits');
+
+     //tabulate the results in a table with header and data
+	 foreach($results['rows'] as $result) {
+		$rows[] = array($result[0],$result[1]);
+	}	 
+     $output .=  theme('table', array('header' => $header, 'rows' => $rows));
+
+        //return the output
+        return $output;
+		//drupal_json_output($rows);
+ 
+ }
+ 
+ 

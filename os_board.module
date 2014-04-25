@@ -1,74 +1,124 @@
 <?php  
+
+/*
+* requiring once the google api files and the os_board inc file
+*/
 require_once 'google-api-php-client/src/Google_Client.php';
 require_once 'google-api-php-client/src/contrib/Google_AnalyticsService.php';
+require_once 'os_board.inc';
 
+
+/* 
+* the main menu for realtime_openscholar
+* displays active users on the OpenScholar site
+*/
 function os_board_menu() {
   $items = array();
- 
+
   $items['os_board'] = array(
-        'title' => 'Dash Board',
-        'description' => 'display dash board',
-		'page callback' => 'dash_board',
-		'access callback' => TRUE,
+        'title' => 'OS dashboard',
+        'description' => 'displays most active users',
+ 	    'page callback' => 'active_users_pages',
+	    'access callback' => TRUE,
     	);
-		
-  $items['os_board/page'] = array(
+
+  $items['os_board/active_users_pages'] = array(
+    'title' => 'Active Users',
     'type' => MENU_DEFAULT_LOCAL_TASK,
-	'weight' => 10
+	'weight' => -10
   );
+  
+  $items['os_board/most-viewed-pages'] = array(
+    'title' => 'Most viewed pages',
+	'type' => MENU_LOCAL_TASK,
+    'description' => 'displays most viewed pages',
+	'page callback' => 'viewed_pages',
+	'access callback' => TRUE,
+	'weight' => -9  
+  );
+  
+  $items['os_board/most-visited-sites'] = array(
+    'title' => 'Most visited sites',
+	'type' => MENU_LOCAL_TASK,
+    'description' => 'displays most visited sites',
+	'page callback' => 'visited_sites',
+	'access callback' => TRUE,
+	'weight' => -8  
+  );
+  
  
-  return $items;
+ return $items;
 }
 
-/**
- * Helper function to make a link.
- */
-function dash_board() {
-    //authorized credentials are stored in the accessToken object
-    drupal_session_start();
-	//create a new object of Google_Client by initializing the client object
-	$client = new Google_Client();
-	
-	$client->setApplicationName('OS Analytics Sample');
-	
-	/*$client->setClientId('1076290322756-6mdpp9nvh7u60h5e0nbqli9e16hsareu.apps.googleusercontent.com');
-	$client->setClientSecret('JZ-Sh0ULtkDQjhvNHGIuMIG-');
-	$client->setRedirectUri('http://localhost');
-	$client->setDeveloperKey('AIzaSyCc-URfEtLokUnLCZd4cko6f3u0lKl4vmU');
-	$client->setScopes('https://www.googleapis.com/auth/analytics.readonly');*/
-	
-	//properties of client object being set via details from google developers console
-	$client->setClientId('1076290322756-nvnhvfuukq8fnh2d9m2c8gltvahcv4ei.apps.googleusercontent.com');
-	$client->setClientSecret('BjsfVV0hPrlafgeXhMGWjh49');
-	$client->setRedirectUri('http://localhost/drupaltest/board_os');
-	$client->setDeveloperKey('AIzaSyCc-URfEtLokUnLCZd4cko6f3u0lKl4vmU');
-	$client->setScopes('https://www.googleapis.com/auth/analytics.readonly');
-	
-	//set client object to true to use the authentication
-	$client->setUseObjects(true);
-	
-	if (isset($_GET['code'])){
-	  //authenticate the client
-	  $client->authenticate();
-	  //if the client is authenticated, the token is set for the user and the client is redirected to the proper page
-	  $_SESSION['token'] = $client->getAccessToken();
-	  $redirect = 'http://'.$_SERVER['HTTP_HOST']. $_SERVER['PHP_SELF'];
-	  header('Location: ' .filter_var($redirect, FILTER_SANITIZE_URL));
-	}
-	
-	if (isset($_SESSION['token'])){
-	  $client->setAccessToken($_SESSION['token']);
-	} 
-	
-	// this places a link 'connect me' which tells the user that google wishes to use the data from me and once the user
-	// is authenticated, it returns to the hello page'
-	if (!$client->getAccessToken()){
-	   $authUrl = $client->createAuthUrl();
-	   return "<a class='login' href='$authUrl'>Connect Me!</a>";
-	}
-	else {
-		 return 'hello. Got Authenticated!';	
-	}
-    
-}
+/*
+* activer_users()
+* no parameters. returns json_encoded active users of the OS sites
+* calls the realtime_users function and the return value is json encoded
+*/
 
+ function active_users_pages(){
+     drupal_add_js(drupal_get_path('module', 'os_board') . '/os_board.js');
+       
+     $realtimePages = return_pages();
+	 $realtimeUsers = return_users();
+	 $pages = $realtimePages['rows'];
+     
+     $realtimeNumbers = $realtimeUsers['rows'][0][0];
+     $build = array(
+       '#markup'=>	 '<div id="realtime_users"><b>Active Users:  <font color="green"><b> '.$realtimeUsers['rows'][0][0].'</b></font></b></div><br/><br/>
+	                  <div id="realtime_pages"><b>Active Pages:</b><br/>'
+			              .implode ('       => ', $pages[0]).'<br/>'
+						  .implode ('       => ', $pages[1]).' <br/>'
+						  .implode ('       => ', $pages[2]).' <br/>'
+						  .implode ('       => ', $pages[3]).' <br/>'
+						  .implode ('       => ', $pages[4]).' <br/>
+						  </div>');
+		
+    //drupal_json_output($realtimeNumbers);
+           return $build;
+  }
+  
+  function viewed_pages(){
+     //declare variables
+     $output ='';
+	 $rows = array();
+	 //create header for data
+	 $header_views = 'Most viewed pages';
+     $visited_numbers = 'Number Visited';
+	 $header = array($header_views,$visited_numbers);
+     
+     //get results from the design_output function by sending the parameter of type = pageviews
+     $results = os_design_output('pageviews');
+     //tabulate the results in a table with header and data
+     foreach($results['rows'] as $result) {
+         $rows[] = array($result[0],$result[1]);
+     }
+     $output .=  theme('table', array('header' => $header, 'rows' => $rows));
+
+     //return the output
+    return $output;
+	//drupal_json_output($rows);
+ }
+ 
+ function visited_sites(){
+     $header_visits =  'Most Visited Sites';
+     $visited_numbers = 'Number Visited';
+     $output ='';
+     $rows = array();
+	 $header = array($header_visits,$visited_numbers);
+     //get results from the design_output function by sending the parameter of type = visits
+     $results = os_design_output('visits');
+
+     //tabulate the results in a table with header and data
+	 foreach($results['rows'] as $result) {
+		$rows[] = array($result[0],$result[1]);
+	}	 
+     $output .=  theme('table', array('header' => $header, 'rows' => $rows));
+
+        //return the output
+        return $output;
+		//drupal_json_output($rows);
+ 
+ }
+ 
+ 

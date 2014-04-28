@@ -1,5 +1,17 @@
 <?php
 
+
+
+
+function user_authorized(){
+   global $user;
+   $approved = False;
+   if (in_array('administrator', array_values($user->roles))){
+          $approved = True;
+		  }
+   return $approved;
+}
+
 /* authenticate credentials by creating a new Google_client object and 
 * sending it to google analytics
 * check_credentials
@@ -7,21 +19,26 @@
 * creates the google_client object
 * returns the validated service object
 */
-function check_credentials(){
+function check_credentials($get_approval){
   // try-catch block for setting private key. 
   // If not set then redirect to a different url
-  try {
-    $fid = variable_get('os_board_private_key_fid', '');
-    if (!empty($fid)) {
-	  $uri = db_query('SELECT uri FROM {file_managed} WHERE fid = :fid', array(':fid' => $fid))->fetchColumn();
-	  $fhandle = fopen($uri, 'r');
-	  $result = fread($fhandle, filesize($uri));
-	  fclose($fhandle);
+    if(!$get_approval){
+	  variable_set('os_board_private_key_fid', '');
+	  	
 	}
-	else {
-	  drupal_set_message(t('You are not authenticated. You are being redirected to a page where the credentials can be set. Thanks'), 'error');
-	  drupal_goto("admin/config/openscholar_os_board");	
-	}
+	else if ($get_approval) {
+   		$fid = variable_get('os_board_private_key_fid', '');
+		if (!empty($fid)) {
+			$uri = db_query('SELECT uri FROM {file_managed} WHERE fid = :fid', array(':fid' => $fid))->fetchColumn();
+			$fhandle = fopen($uri, 'r');
+			$result = fread($fhandle, filesize($uri));
+			fclose($fhandle);
+		}
+		else {
+		  drupal_goto('admin/config/openscholar_os_board');
+		 
+		}
+		
 	
     //variables definition block starts
     $output ='';
@@ -44,15 +61,14 @@ function check_credentials(){
 	 
     //create a new instance of google_analyticsservice
     $service = new Google_AnalyticsService($client);
+	
 	}
-	catch (Exception $ex){
-	  drupal_set_message(t('Issue authenticating and receiving data. Message = %message, query=%query', 
-	           array('%message' =>$e->getMessage(),'%query' => $e->query_string)), 'error');		
-	}
-    //set optional parameters like sort, dimensions etc
+	    //set optional parameters like sort, dimensions etc
 	return $service;
 	
-	}	
+		
+	
+	}
 	
 /* 
 * os_design_output
@@ -61,9 +77,9 @@ function check_credentials(){
 * most frequent page views and page visited
 * returns the pageviews and visit object
 */
-function os_design_output($type){
-  try {
-    //variables definition block starts
+function os_design_output($type, $get_approval){
+ if($get_approval){
+     //variables definition block starts
     $output ='';
 	$app_name = 'OS Board';
 	$metrics_pageviews = 'ga:pageviews';
@@ -76,7 +92,7 @@ function os_design_output($type){
 	
     $max_results = 5;
     //get credentials 
-     $service = check_credentials();
+     $service = check_credentials($get_approval);
     if ($type == 'visits'){
         $sort = $sort_visits;
         $metrics = $metrics_visits;
@@ -90,12 +106,9 @@ function os_design_output($type){
     $optparams = array ('dimensions' => $dimensions,'sort' => $sort,'max-results' => $max_results);
     //get result (analytics object
     $results = $service->data_ga->get(variable_get('os_board_analytics_id'), $start_date, $end_date, $metrics, $optparams);
-	}
-    catch (Exception $e){
-	   drupal_set_message(t('Issue authenticating and receiving data. Message = %message, query=%query', 
-	           array('%message' =>$e->getMessage(),'%query' => $e->query_string)), 'error');	
-	}
+	
     return $results;
+}
 }
 
 /* 
@@ -104,27 +117,23 @@ function os_design_output($type){
 * taps into google analytics and retrieves the results for 
 * users that are currently active
 */
-function return_users(){
-     try {
+function return_users($get_approval){
+   if($get_approval){
         // declare variables
         $dimensions = 'rt:source';
 		$rt_users = 'rt:activeUsers';
 		
 		//validate the credentials
-        $service = check_credentials();
+        $service = check_credentials($get_approval);
 		$optparams = array ('dimensions' => $dimensions);
 		
 		//get result 
 		$results = $service->data_realtime->get(variable_get('os_board_analytics_id'), $rt_users);
-		}
-		catch (Exception $e){
-		   drupal_set_message(t('Issue authenticating and receiving data. Message = %message, query=%query', 
-	           array('%message' =>$e->getMessage(),'%query' => $e->query_string)), 'error');	
-		
-		}
 		//return the results
 		return $results;	
 }
+}
+
 
 /* 
 * return_pages
@@ -132,26 +141,22 @@ function return_users(){
 * taps into google analytics and retrieves the results for 
 * pages that are currently active
 */
-function return_pages(){
-    try {
-        // declare variables
-        $dimensions = 'rt:pagePath,rt:pageTitle';
+function return_pages($get_approval){
+    if ($get_approval){
+          // declare variables
+        $dimensions = 'rt:pagePath';
 		$sort = '-rt:pageviews';
 		$max_results = 5;
 		$page_views = 'rt:pageviews';
 		
 		//validate the credentials
-	    $service = check_credentials();
+	    $service = check_credentials($get_approval);
         $optparams = array ('dimensions' => $dimensions , 'sort' =>  $sort, 'max-results' => $max_results );
 		
 		//get result 
 		$results = $service->data_realtime->get(variable_get('os_board_analytics_id'),$page_views, $optparams);
-		}
-		catch (Exception $e){
-		   drupal_set_message(t('Issue authenticating and receiving data. Message = %message, query=%query', 
-	           array('%message' =>$e->getMessage(),'%query' => $e->query_string)), 'error');	
-		  
-		}
+	
 		//return the results
         return $results;
+}
 }

@@ -1,74 +1,223 @@
 <?php  
-require_once 'google-api-php-client/src/Google_Client.php';
-require_once 'google-api-php-client/src/contrib/Google_AnalyticsService.php';
 
+/* 
+* the main menu for os_board
+* hook_menu
+*/
 function os_board_menu() {
   $items = array();
- 
+
   $items['os_board'] = array(
-        'title' => 'Dash Board',
-        'description' => 'display dash board',
-		'page callback' => 'dash_board',
-		'access callback' => TRUE,
+        'title' => 'OS dashboard',
+        'description' => 'displays current (users and pages) and other statistics',
+ 	    'page callback' => '_os_board_active_users_pages',
+	    'access callback' => TRUE,
     	);
-		
-  $items['os_board/page'] = array(
+
+  $items['os_board/active_users_pages'] = array(
+    'title' => 'Active Users and pages',
     'type' => MENU_DEFAULT_LOCAL_TASK,
-	'weight' => 10
+	'weight' => -10
+  );
+  
+  $items['os_board/most-viewed-pages'] = array(
+    'title' => 'Most viewed pages',
+	'type' => MENU_LOCAL_TASK,
+    'description' => 'displays most viewed pages',
+	'page callback' => '_os_board_viewed_pages',
+	'access callback' => TRUE,
+	'weight' => -9  
+  );
+  
+  $items['os_board/most-visited-sites'] = array(
+    'title' => 'Most visited sites',
+	'type' => MENU_LOCAL_TASK,
+    'description' => 'displays most visited sites',
+	'page callback' => '_os_board_visited_sites',
+	'access callback' => TRUE,
+	'weight' => -8  
+  );
+  
+   $items['admin/config/openscholar_os_board'] = array(
+    'title' => 'OpenScholar Board Settings',
+    'description' => 'Administer OpenScholar Board specific settings.',
+    'position' => 'left',
+    'weight' => -5,
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('os_board_settings_form'),
+    'access arguments' => array('administer content'),
   );
  
-  return $items;
+ return $items;
 }
 
-/**
- * Helper function to make a link.
- */
-function dash_board() {
-    //authorized credentials are stored in the accessToken object
-    drupal_session_start();
-	//create a new object of Google_Client by initializing the client object
-	$client = new Google_Client();
-	
-	$client->setApplicationName('OS Analytics Sample');
-	
-	/*$client->setClientId('1076290322756-6mdpp9nvh7u60h5e0nbqli9e16hsareu.apps.googleusercontent.com');
-	$client->setClientSecret('JZ-Sh0ULtkDQjhvNHGIuMIG-');
-	$client->setRedirectUri('http://localhost');
-	$client->setDeveloperKey('AIzaSyCc-URfEtLokUnLCZd4cko6f3u0lKl4vmU');
-	$client->setScopes('https://www.googleapis.com/auth/analytics.readonly');*/
-	
-	//properties of client object being set via details from google developers console
-	$client->setClientId('1076290322756-nvnhvfuukq8fnh2d9m2c8gltvahcv4ei.apps.googleusercontent.com');
-	$client->setClientSecret('BjsfVV0hPrlafgeXhMGWjh49');
-	$client->setRedirectUri('http://localhost/drupaltest/board_os');
-	$client->setDeveloperKey('AIzaSyCc-URfEtLokUnLCZd4cko6f3u0lKl4vmU');
-	$client->setScopes('https://www.googleapis.com/auth/analytics.readonly');
-	
-	//set client object to true to use the authentication
-	$client->setUseObjects(true);
-	
-	if (isset($_GET['code'])){
-	  //authenticate the client
-	  $client->authenticate();
-	  //if the client is authenticated, the token is set for the user and the client is redirected to the proper page
-	  $_SESSION['token'] = $client->getAccessToken();
-	  $redirect = 'http://'.$_SERVER['HTTP_HOST']. $_SERVER['PHP_SELF'];
-	  header('Location: ' .filter_var($redirect, FILTER_SANITIZE_URL));
-	}
-	
-	if (isset($_SESSION['token'])){
-	  $client->setAccessToken($_SESSION['token']);
-	} 
-	
-	// this places a link 'connect me' which tells the user that google wishes to use the data from me and once the user
-	// is authenticated, it returns to the hello page'
-	if (!$client->getAccessToken()){
-	   $authUrl = $client->createAuthUrl();
-	   return "<a class='login' href='$authUrl'>Connect Me!</a>";
-	}
-	else {
-		 return 'hello. Got Authenticated!';	
-	}
-    
+/*
+* os_board_settings_form
+* parameters : form_state
+* creates an admin form for os_board for admins to
+* enter the data for activating Google Analytics 
+*/
+function os_board_settings_form($form_state){
+ $form = array();
+
+ $form['os_board_settings'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Enter OS Board setting details here'),
+    '#weight' => 0,
+    '#collapsible' => TRUE,
+    '#collapsed' => TRUE,
+  );
+
+  $form['os_board_settings']['os_board_private_key'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Private Key'),
+    '#default_value' => variable_get('os_board_private_key',""),
+    '#description' => t('Add OS Board Private Key here'),
+  );
+  
+  $form['os_board_settings']['os_board_private_key_fid'] = array(
+        '#type' => 'managed_file',
+        '#title' => t('Private Key file'),
+        '#description' => t('Upload the Private Key file from Google and type service Account'),
+        '#default_value' => variable_get('os_board_private_key_fid', ''),
+        '#upload_validators' => array(
+          'file_validate_extensions' => array('p12'),
+          'file_validate_size' => array(2*1024*1024),
+        ),
+      );
+  
+  $form['os_board_settings']['os_board_client_id'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Client Id'),
+    '#default_value' => variable_get('os_board_client_id',""),
+    '#description' => t('Add OS Board Client Id here'),
+  );
+
+  $form['os_board_settings']['os_board_service_gmail'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Service Gmail'),
+    '#required' => TRUE,
+    '#default_value' => variable_get('os_board_service_gmail',""),
+    '#description' => t('Add OS Board Service Gmail here'),
+   );
+   
+   $form['os_board_settings']['os_board_analytics_id'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Analytics Id'),
+    '#required' => TRUE,
+    '#default_value' => variable_get('os_board_analytics_id'),
+    '#description' => t('Add OS Board Analytics Id here'),
+   );
+
+  return system_settings_form($form);
+
 }
 
+/*
+* _os_board_get_require_once()
+* no parameters. all the required files in this function
+* 
+*/
+function _os_board_get_require_once(){
+  require_once 'google-api-php-client/src/Google_Client.php';
+  require_once 'google-api-php-client/src/contrib/Google_AnalyticsService.php';
+  require_once 'os_board.inc';
+}
+/*
+* _os_board_active_users_pages()
+* no parameters. returns both active users and pages
+* 
+*/
+ function _os_board_active_users_pages(){
+     //get all the require_once files
+     _os_board_get_require_once();
+     //attach js file
+     drupal_add_js(drupal_get_path('module', 'os_board') . '/os_board.js');
+       
+	 //return the active pages and users from the google analytics object
+     $realtimePages = return_pages();
+	 $realtimeUsers = return_users();
+	 //get the top 5 pages
+	 $pages = $realtimePages['rows'];     
+     $realtimeNumbers = $realtimeUsers['rows'][0][0];
+	 
+	 //create the markup for displaying both active users and pages
+     $build = array(
+       '#markup'=>	 '<div id="realtime_users"><b>Active Users:  <font color="green"><b> '.$realtimeUsers['rows'][0][0].'</b></font></b></div><br/><br/>
+	                  <div id="realtime_pages"><b>Active Pages:</b><br/>'
+			              .implode ('       => ', $pages[0]).'<br/>'
+						  .implode ('       => ', $pages[1]).' <br/>'
+						  .implode ('       => ', $pages[2]).' <br/>'
+						  .implode ('       => ', $pages[3]).' <br/>'
+						  .implode ('       => ', $pages[4]).' <br/>
+						  </div>');
+		
+    //drupal_json_output($realtimeNumbers);
+	// return the markup
+    return $build;
+  }
+  
+/*
+* _os_board_viewed_pages()
+* no parameters. returns most frequently viewed pages
+*/
+function _os_board_viewed_pages(){
+     //get all the require_once files
+     _os_board_get_require_once();
+     //declare variables
+     $output ='';
+	 $rows = array();
+	 
+	 //create header for data
+	 $header_views = 'Most viewed pages';
+     $visited_numbers = 'Number Visited';
+	 $header = array($header_views,$visited_numbers);
+     
+     //get results from the design_output function by sending the parameter of type = pageviews
+     $results = os_design_output('pageviews');
+	 
+     //create the array of results
+     foreach($results['rows'] as $result) {
+         $rows[] = array($result[0],$result[1]);
+     }
+	 // add header and rows to the output with table theme
+     $output .=  theme('table', array('header' => $header, 'rows' => $rows));
+
+     //return the output
+     return $output;
+	//drupal_json_output($rows);
+ }
+ 
+ /*
+* _os_board_visited_sites()
+* no parameters. returns most frequently visited sites
+*/
+ function _os_board_visited_sites(){
+     //get all the require_once files
+     _os_board_get_require_once();
+     //declare variables
+     $output ='';
+     $rows = array();
+	 
+	 //create header for data
+	 $header_visits =  'Most Visited Sites';
+     $visited_numbers = 'Number Visited';
+	 $header = array($header_visits,$visited_numbers);
+	 
+     //get results from the design_output function by sending the parameter of type = visits
+     $results = os_design_output('visits');
+
+     //create the array of results
+	 foreach($results['rows'] as $result) {
+		$rows[] = array($result[0],$result[1]);
+	}	 
+	 // add header and rows to the output with table theme
+     $output .=  theme('table', array('header' => $header, 'rows' => $rows));
+
+     //return the output
+     return $output;
+	 //drupal_json_output($rows);
+ 
+ }
+ 
+ 
